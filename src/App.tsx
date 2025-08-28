@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -14,22 +14,44 @@ import DashboardLayout from './components/dashboard/DashboardLayout';
 import Sidebar from './components/dashboard/Sidebar';
 import DashboardHome from './components/dashboard/DashboardHome';
 import { type Business } from './lib/supabase';
+import Signup from './pages/Signup';
+
+// Import Pages
+import Products from './pages/Products';
+import Sales from './pages/Sales';
+import Students from './pages/Students';
+import Tenants from './pages/Tenants';
+import Rooms from './pages/Rooms';
+import Listings from './pages/Listings';
+import Bookings from './pages/Bookings';
+import FeePayments from './pages/FeePayments';
+import RentPayments from './pages/RentPayments';
+import Staff from './pages/Staff';
+import Reports from './pages/Reports';
+import Settings from './pages/Settings';
 
 function LandingPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const navigate = useNavigate();
 
-  const openAuthModal = (mode: 'login' | 'signup') => {
-    setAuthMode(mode);
-    setShowAuthModal(true);
+  const handleSelectBusinessType = (plan: string) => {
+    const planKey = plan.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-');
+    navigate(`/signup?plan=${planKey}`);
+  };
+
+  const handleGetStarted = () => {
+    const pricingSection = document.getElementById('pricing');
+    if (pricingSection) {
+      pricingSection.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
     <>
-      <Header onLogin={() => openAuthModal('login')} onSignup={() => openAuthModal('signup')} />
+      <Header onLogin={() => setShowAuthModal(true)} onSignup={handleGetStarted} />
       <main>
-        <Hero onGetStarted={() => openAuthModal('signup')} />
-        <BusinessTypes />
+        <Hero onGetStarted={handleGetStarted} />
+        <BusinessTypes onSelectBusinessType={handleSelectBusinessType} />
         <Features />
         <AccessControl />
       </main>
@@ -38,7 +60,6 @@ function LandingPage() {
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
-        mode={authMode}
       />
     </>
   );
@@ -68,70 +89,72 @@ function Dashboard() {
                   Welcome to Fedha Plus!
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Create your first business to get started.
+                  Select or create a business to get started.
                 </p>
               </div>
             )
           } 
         />
-        <Route path="/products" element={<div>Products Management (Coming Soon)</div>} />
-        <Route path="/sales" element={<div>Sales Management (Coming Soon)</div>} />
-        <Route path="/students" element={<div>Student Management (Coming Soon)</div>} />
-        <Route path="/tenants" element={<div>Tenant Management (Coming Soon)</div>} />
-        <Route path="/rooms" element={<div>Room Management (Coming Soon)</div>} />
-        <Route path="/bookings" element={<div>Booking Management (Coming Soon)</div>} />
-        <Route path="/fee-payments" element={<div>Fee Payments (Coming Soon)</div>} />
-        <Route path="/rent-payments" element={<div>Rent Payments (Coming Soon)</div>} />
-        <Route path="/staff" element={<div>Staff Management (Coming Soon)</div>} />
-        <Route path="/reports" element={<div>Reports (Coming Soon)</div>} />
-        <Route path="/settings" element={<div>Settings (Coming Soon)</div>} />
+        <Route path="/products" element={<Products />} />
+        <Route path="/sales" element={<Sales />} />
+        <Route path="/students" element={<Students />} />
+        <Route path="/tenants" element={<Tenants />} />
+        <Route path="/rooms" element={<Rooms />} />
+        <Route path="/listings" element={<Listings />} />
+        <Route path="/bookings" element={<Bookings />} />
+        <Route path="/fee-payments" element={<FeePayments />} />
+        <Route path="/rent-payments" element={<RentPayments />} />
+        <Route path="/staff" element={<Staff />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
     </DashboardLayout>
   );
 }
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function AppRoutes() {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/dashboard');
+    }
+  }, [user, loading, navigate]);
+  
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route 
+        path="/dashboard/*" 
+        element={
+          loading ? (
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            </div>
+          ) : user ? (
+            <Dashboard />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        } 
+      />
+    </Routes>
+  );
 }
 
 function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <AuthProvider>
-          <Router>
+        <Router>
+          <AuthProvider>
             <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
-              <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route 
-                  path="/dashboard/*" 
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } 
-                />
-              </Routes>
+              <AppRoutes />
             </div>
-          </Router>
-        </AuthProvider>
+          </AuthProvider>
+        </Router>
       </LanguageProvider>
     </ThemeProvider>
   );

@@ -21,50 +21,50 @@ interface SidebarProps {
   onBusinessSelect: (business: Business) => void;
 }
 
-const navigationMap: Record<BusinessType, Array<{ name: string; href: string; icon: any }>> = {
+const navigationMap: Record<BusinessType, Array<{ name: string; href: string; icon: any; end?: boolean }>> = {
   hardware: [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Products', href: '/dashboard/products', icon: CubeIcon },
-    { name: 'Sales', href: '/dashboard/sales', icon: ShoppingCartIcon },
-    { name: 'Reports', href: '/dashboard/reports', icon: ChartBarIcon },
-    { name: 'Settings', href: '/dashboard/settings', icon: CogIcon },
+    { name: 'Dashboard', href: '', icon: HomeIcon, end: true },
+    { name: 'Products', href: 'products', icon: CubeIcon },
+    { name: 'Sales', href: 'sales', icon: ShoppingCartIcon },
+    { name: 'Reports', href: 'reports', icon: ChartBarIcon },
+    { name: 'Settings', href: 'settings', icon: CogIcon },
   ],
   supermarket: [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Products', href: '/dashboard/products', icon: CubeIcon },
-    { name: 'Sales', href: '/dashboard/sales', icon: ShoppingCartIcon },
-    { name: 'Staff', href: '/dashboard/staff', icon: UsersIcon },
-    { name: 'Reports', href: '/dashboard/reports', icon: ChartBarIcon },
-    { name: 'Settings', href: '/dashboard/settings', icon: CogIcon },
+    { name: 'Dashboard', href: '', icon: HomeIcon, end: true },
+    { name: 'Products', href: 'products', icon: CubeIcon },
+    { name: 'Sales', href: 'sales', icon: ShoppingCartIcon },
+    { name: 'Staff', href: 'staff', icon: UsersIcon },
+    { name: 'Reports', href: 'reports', icon: ChartBarIcon },
+    { name: 'Settings', href: 'settings', icon: CogIcon },
   ],
   rentals: [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Tenants', href: '/dashboard/tenants', icon: UsersIcon },
-    { name: 'Rent Payments', href: '/dashboard/rent-payments', icon: CreditCardIcon },
-    { name: 'Reports', href: '/dashboard/reports', icon: ChartBarIcon },
-    { name: 'Settings', href: '/dashboard/settings', icon: CogIcon },
+    { name: 'Dashboard', href: '', icon: HomeIcon, end: true },
+    { name: 'Tenants', href: 'tenants', icon: UsersIcon },
+    { name: 'Rent Payments', href: 'rent-payments', icon: CreditCardIcon },
+    { name: 'Reports', href: 'reports', icon: ChartBarIcon },
+    { name: 'Settings', href: 'settings', icon: CogIcon },
   ],
   airbnb: [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Listings', href: '/dashboard/listings', icon: BuildingOfficeIcon },
-    { name: 'Bookings', href: '/dashboard/bookings', icon: DocumentTextIcon },
-    { name: 'Reports', href: '/dashboard/reports', icon: ChartBarIcon },
-    { name: 'Settings', href: '/dashboard/settings', icon: CogIcon },
+    { name: 'Dashboard', href: '', icon: HomeIcon, end: true },
+    { name: 'Listings', href: 'listings', icon: BuildingOfficeIcon },
+    { name: 'Bookings', href: 'bookings', icon: DocumentTextIcon },
+    { name: 'Reports', href: 'reports', icon: ChartBarIcon },
+    { name: 'Settings', href: 'settings', icon: CogIcon },
   ],
   hotel: [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Rooms', href: '/dashboard/rooms', icon: BuildingStorefrontIcon },
-    { name: 'Bookings', href: '/dashboard/bookings', icon: DocumentTextIcon },
-    { name: 'Reports', href: '/dashboard/reports', icon: ChartBarIcon },
-    { name: 'Settings', href: '/dashboard/settings', icon: CogIcon },
+    { name: 'Dashboard', href: '', icon: HomeIcon, end: true },
+    { name: 'Rooms', href: 'rooms', icon: BuildingStorefrontIcon },
+    { name: 'Bookings', href: 'bookings', icon: DocumentTextIcon },
+    { name: 'Reports', href: 'reports', icon: ChartBarIcon },
+    { name: 'Settings', href: 'settings', icon: CogIcon },
   ],
   school: [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Students', href: '/dashboard/students', icon: AcademicCapIcon },
-    { name: 'Fee Payments', href: '/dashboard/fee-payments', icon: CreditCardIcon },
-    { name: 'Staff', href: '/dashboard/staff', icon: UsersIcon },
-    { name: 'Reports', href: '/dashboard/reports', icon: ChartBarIcon },
-    { name: 'Settings', href: '/dashboard/settings', icon: CogIcon },
+    { name: 'Dashboard', href: '', icon: HomeIcon, end: true },
+    { name: 'Students', href: 'students', icon: AcademicCapIcon },
+    { name: 'Fee Payments', href: 'fee-payments', icon: CreditCardIcon },
+    { name: 'Staff', href: 'staff', icon: UsersIcon },
+    { name: 'Reports', href: 'reports', icon: ChartBarIcon },
+    { name: 'Settings', href: 'settings', icon: CogIcon },
   ],
 };
 
@@ -96,6 +96,7 @@ export default function Sidebar({ selectedBusiness, onBusinessSelect }: SidebarP
             <NavLink
               key={item.name}
               to={item.href}
+              end={item.end}
               className={({ isActive }) =>
                 `group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                   isActive

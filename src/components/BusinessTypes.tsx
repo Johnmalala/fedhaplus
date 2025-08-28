@@ -9,7 +9,11 @@ import {
 } from '@heroicons/react/24/outline';
 import { useLanguage } from '../contexts/LanguageContext';
 
-export default function BusinessTypes() {
+interface BusinessTypesProps {
+  onSelectBusinessType: (plan: string) => void;
+}
+
+export default function BusinessTypes({ onSelectBusinessType }: BusinessTypesProps) {
   const { t } = useLanguage();
 
   const businessTypes = [
@@ -102,12 +106,14 @@ export default function BusinessTypes() {
                   {business.description}
                 </p>
 
-                <button className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 ${
+                <button 
+                  onClick={() => onSelectBusinessType(business.title)}
+                  className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 ${
                   business.popular
                     ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-lg hover:shadow-xl'
                     : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
                 }`}>
-                  Start Free Trial
+                  Try Free for 30 Days
                 </button>
               </div>
             </div>

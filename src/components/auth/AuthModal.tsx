@@ -7,18 +7,15 @@ import { useLanguage } from '../../contexts/LanguageContext';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  mode: 'login' | 'signup';
 }
 
-export default function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps) {
-  const [mode, setMode] = useState(initialMode);
+export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
   const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,11 +24,7 @@ export default function AuthModal({ isOpen, onClose, mode: initialMode }: AuthMo
     setError('');
 
     try {
-      if (mode === 'signup') {
-        await signUp(email, password, fullName);
-      } else {
-        await signIn(email, password);
-      }
+      await signIn(email, password);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -48,7 +41,7 @@ export default function AuthModal({ isOpen, onClose, mode: initialMode }: AuthMo
         <Dialog.Panel className="mx-auto max-w-md w-full bg-white dark:bg-gray-900 rounded-xl shadow-xl">
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
-              {mode === 'login' ? t('nav.login') : t('nav.signup')}
+              {t('nav.login')}
             </Dialog.Title>
             <button
               onClick={onClose}
@@ -62,21 +55,6 @@ export default function AuthModal({ isOpen, onClose, mode: initialMode }: AuthMo
             {error && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-2 rounded-lg text-sm">
                 {error}
-              </div>
-            )}
-
-            {mode === 'signup' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
-                  required
-                />
               </div>
             )}
 
@@ -111,20 +89,13 @@ export default function AuthModal({ isOpen, onClose, mode: initialMode }: AuthMo
               disabled={loading}
               className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white py-2 px-4 rounded-lg font-medium transition-colors"
             >
-              {loading ? t('common.loading') : (mode === 'login' ? t('nav.login') : t('nav.signup'))}
+              {loading ? t('common.loading') : t('nav.login')}
             </button>
 
             <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-                className="text-primary-600 hover:text-primary-700 dark:text-primary-400 text-sm"
-              >
-                {mode === 'login' 
-                  ? "Don't have an account? Sign up" 
-                  : "Already have an account? Login"
-                }
-              </button>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                New user? Select a business plan to sign up.
+              </p>
             </div>
           </form>
         </Dialog.Panel>

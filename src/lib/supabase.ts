@@ -38,6 +38,14 @@ export interface Business {
   updated_at: string;
 }
 
+export interface Subscription {
+  id: string;
+  business_id: string;
+  status: SubscriptionStatus;
+  trial_ends_at?: string;
+  current_period_ends_at?: string;
+}
+
 export interface StaffRole {
   id: string;
   business_id: string;

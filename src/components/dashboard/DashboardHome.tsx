@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   CurrencyDollarIcon,
   ShoppingCartIcon,
   UsersIcon,
-  TrendingUpIcon,
+  ArrowTrendingUpIcon,
 } from '@heroicons/react/24/outline';
 import { supabase, type Business } from '../../lib/supabase';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -35,10 +36,13 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
   const { t } = useLanguage();
 
   useEffect(() => {
-    fetchDashboardStats();
-  }, [business.id]);
+    if (business?.id) {
+      fetchDashboardStats();
+    }
+  }, [business?.id]);
 
   const fetchDashboardStats = async () => {
+    setLoading(true);
     try {
       const now = new Date();
       const startOfCurrentMonth = startOfMonth(now);
@@ -53,7 +57,6 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
       switch (business.business_type) {
         case 'hardware':
         case 'supermarket':
-          // Sales-based revenue
           revenueQuery = supabase
             .from('sales')
             .select('total_amount, created_at')
@@ -61,44 +64,49 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
           
           customerCountQuery = supabase
             .from('sales')
-            .select('customer_phone')
+            .select('customer_phone', { count: 'exact', head: true })
             .eq('business_id', business.id)
             .not('customer_phone', 'is', null);
           break;
 
         case 'rentals':
-          // Rent payments
+          const { data: tenants, error: tenantsError } = await supabase.from('tenants').select('id').eq('business_id', business.id);
+          if (tenantsError) throw tenantsError;
+          const tenantIds = tenants.map(t => t.id);
+
           revenueQuery = supabase
             .from('rent_payments')
             .select('amount, created_at')
-            .eq('tenant_id', 'in', `(SELECT id FROM tenants WHERE business_id = '${business.id}')`)
+            .in('tenant_id', tenantIds)
             .eq('status', 'paid');
           
           customerCountQuery = supabase
             .from('tenants')
-            .select('id')
+            .select('id', { count: 'exact', head: true })
             .eq('business_id', business.id)
             .eq('is_active', true);
           break;
 
         case 'school':
-          // Fee payments
+          const { data: students, error: studentsError } = await supabase.from('students').select('id').eq('business_id', business.id);
+          if (studentsError) throw studentsError;
+          const studentIds = students.map(s => s.id);
+
           revenueQuery = supabase
             .from('fee_payments')
             .select('amount, created_at')
-            .eq('student_id', 'in', `(SELECT id FROM students WHERE business_id = '${business.id}')`)
+            .in('student_id', studentIds)
             .eq('status', 'paid');
           
           customerCountQuery = supabase
             .from('students')
-            .select('id')
+            .select('id', { count: 'exact', head: true })
             .eq('business_id', business.id)
             .eq('is_active', true);
           break;
 
         case 'hotel':
         case 'airbnb':
-          // Booking payments
           revenueQuery = supabase
             .from('bookings')
             .select('paid_amount, created_at')
@@ -106,7 +114,7 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
           
           customerCountQuery = supabase
             .from('bookings')
-            .select('guest_phone')
+            .select('guest_phone', { count: 'exact', head: true })
             .eq('business_id', business.id)
             .not('guest_phone', 'is', null);
           break;
@@ -119,7 +127,7 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
           
           customerCountQuery = supabase
             .from('sales')
-            .select('customer_phone')
+            .select('customer_phone', { count: 'exact', head: true })
             .eq('business_id', business.id);
       }
 
@@ -161,14 +169,7 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
 
       const revenueGrowth = lastMonthRevenue > 0 
         ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
-        : 0;
-
-      // Count unique customers
-      const uniqueCustomers = new Set(
-        customerData.data
-          ?.map(item => item.customer_phone || item.guest_phone)
-          .filter(Boolean)
-      ).size;
+        : currentMonthRevenue > 0 ? 100 : 0;
 
       setStats({
         totalRevenue,
@@ -178,7 +179,7 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
           const date = new Date(item.created_at);
           return date >= startOfCurrentMonth && date <= endOfCurrentMonth;
         }).length,
-        totalCustomers: customerData.data?.length || uniqueCustomers,
+        totalCustomers: customerData.count || 0,
         revenueGrowth,
       });
 
@@ -202,24 +203,33 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
       value: `KSh ${stats.totalRevenue.toLocaleString()}`,
       change: 'All time',
       changeType: 'neutral',
-      icon: TrendingUpIcon,
+      icon: ArrowTrendingUpIcon,
     },
     {
       title: 'Monthly Transactions',
-      value: stats.monthlyTransactions.toString(),
-      change: `${stats.totalTransactions} total`,
+      value: stats.monthlyTransactions.toLocaleString(),
+      change: `${stats.totalTransactions.toLocaleString()} total`,
       changeType: 'neutral',
       icon: ShoppingCartIcon,
     },
     {
       title: business.business_type === 'school' ? 'Students' : 
              business.business_type === 'rentals' ? 'Tenants' : 'Customers',
-      value: stats.totalCustomers.toString(),
+      value: stats.totalCustomers.toLocaleString(),
       change: 'Active',
       changeType: 'neutral',
       icon: UsersIcon,
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+        <p className="text-gray-600 dark:text-gray-400">Loading Dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -246,7 +256,7 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
                   {stat.title}
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                  {loading ? '...' : stat.value}
+                  {stat.value}
                 </p>
               </div>
               <div className={`p-3 rounded-lg ${
@@ -262,7 +272,7 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
               </div>
             </div>
             <div className="mt-4">
-              <span className={`text-sm ${
+              <span className={`text-sm font-medium ${
                 stat.changeType === 'positive' ? 'text-green-600 dark:text-green-400' :
                 stat.changeType === 'negative' ? 'text-red-600 dark:text-red-400' :
                 'text-gray-600 dark:text-gray-400'
@@ -283,41 +293,41 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {business.business_type === 'hardware' && (
             <>
-              <QuickActionCard title="Record Sale" href="/dashboard/sales/new" />
-              <QuickActionCard title="Add Product" href="/dashboard/products/new" />
-              <QuickActionCard title="View Reports" href="/dashboard/reports" />
+              <QuickActionCard title="Record Sale" to="sales" />
+              <QuickActionCard title="Add Product" to="products" />
+              <QuickActionCard title="View Reports" to="reports" />
             </>
           )}
           
           {business.business_type === 'supermarket' && (
             <>
-              <QuickActionCard title="Record Sale" href="/dashboard/sales/new" />
-              <QuickActionCard title="Manage Inventory" href="/dashboard/products" />
-              <QuickActionCard title="Staff Management" href="/dashboard/staff" />
+              <QuickActionCard title="Record Sale" to="sales" />
+              <QuickActionCard title="Manage Inventory" to="products" />
+              <QuickActionCard title="Staff Management" to="staff" />
             </>
           )}
           
           {business.business_type === 'rentals' && (
             <>
-              <QuickActionCard title="Add Tenant" href="/dashboard/tenants/new" />
-              <QuickActionCard title="Record Payment" href="/dashboard/rent-payments/new" />
-              <QuickActionCard title="Send Reminders" href="/dashboard/rent-payments" />
+              <QuickActionCard title="Add Tenant" to="tenants" />
+              <QuickActionCard title="Record Payment" to="rent-payments" />
+              <QuickActionCard title="Send Reminders" to="rent-payments" />
             </>
           )}
           
           {business.business_type === 'school' && (
             <>
-              <QuickActionCard title="Add Student" href="/dashboard/students/new" />
-              <QuickActionCard title="Record Fee Payment" href="/dashboard/fee-payments/new" />
-              <QuickActionCard title="Send Fee Reminders" href="/dashboard/fee-payments" />
+              <QuickActionCard title="Add Student" to="students" />
+              <QuickActionCard title="Record Fee Payment" to="fee-payments" />
+              <QuickActionCard title="Send Fee Reminders" to="fee-payments" />
             </>
           )}
           
           {(business.business_type === 'hotel' || business.business_type === 'airbnb') && (
             <>
-              <QuickActionCard title="New Booking" href="/dashboard/bookings/new" />
-              <QuickActionCard title="Check-in Guest" href="/dashboard/bookings" />
-              <QuickActionCard title="Manage Rooms" href="/dashboard/rooms" />
+              <QuickActionCard title="New Booking" to="bookings" />
+              <QuickActionCard title="Check-in Guest" to="bookings" />
+              <QuickActionCard title="Manage Rooms" to="rooms" />
             </>
           )}
         </div>
@@ -326,13 +336,13 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
   );
 }
 
-function QuickActionCard({ title, href }: { title: string; href: string }) {
+function QuickActionCard({ title, to }: { title: string; to: string }) {
   return (
-    <a
-      href={href}
-      className="block p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+    <Link
+      to={to}
+      className="block p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
     >
       <h3 className="font-medium text-gray-900 dark:text-white">{title}</h3>
-    </a>
+    </Link>
   );
 }
