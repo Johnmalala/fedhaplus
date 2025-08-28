@@ -1,14 +1,14 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { SunIcon, MoonIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface HeaderProps {
-  onLogin: () => void;
-  onSignup: () => void;
+  onGetStarted: () => void;
 }
 
-export default function Header({ onLogin, onSignup }: HeaderProps) {
+export default function Header({ onGetStarted }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
 
@@ -17,7 +17,7 @@ export default function Header({ onLogin, onSignup }: HeaderProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className="flex items-center">
+          <Link to="/" className="flex items-center">
             <div className="flex-shrink-0 flex items-center">
               <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">F+</span>
@@ -26,7 +26,7 @@ export default function Header({ onLogin, onSignup }: HeaderProps) {
                 Fedha Plus
               </span>
             </div>
-          </div>
+          </Link>
 
           {/* Navigation */}
           <nav className="hidden md:flex space-x-8">
@@ -72,14 +72,14 @@ export default function Header({ onLogin, onSignup }: HeaderProps) {
             </button>
 
             {/* Auth Buttons */}
-            <button 
-              onClick={onLogin}
+            <Link 
+              to="/login"
               className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 text-sm font-medium"
             >
               {t('nav.login')}
-            </button>
+            </Link>
             <button 
-              onClick={onSignup}
+              onClick={onGetStarted}
               className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
             >
               {t('nav.signup')}

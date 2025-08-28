@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -9,12 +9,14 @@ import BusinessTypes from './components/BusinessTypes';
 import Features from './components/Features';
 import AccessControl from './components/AccessControl';
 import Footer from './components/Footer';
-import AuthModal from './components/auth/AuthModal';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import Sidebar from './components/dashboard/Sidebar';
 import DashboardHome from './components/dashboard/DashboardHome';
 import { supabase, type Business } from './lib/supabase';
 import Signup from './pages/Signup';
+import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import UpdatePassword from './pages/UpdatePassword';
 
 // Import Pages
 import Products from './pages/Products';
@@ -31,7 +33,6 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 
 function LandingPage() {
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const navigate = useNavigate();
 
   const handleSelectBusinessType = (plan: string) => {
@@ -48,7 +49,7 @@ function LandingPage() {
 
   return (
     <>
-      <Header onLogin={() => setShowAuthModal(true)} onSignup={handleGetStarted} />
+      <Header onGetStarted={handleGetStarted} />
       <main>
         <Hero onGetStarted={handleGetStarted} />
         <BusinessTypes onSelectBusinessType={handleSelectBusinessType} />
@@ -56,11 +57,6 @@ function LandingPage() {
         <AccessControl />
       </main>
       <Footer />
-      
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-      />
     </>
   );
 }
@@ -171,7 +167,7 @@ function AppRoutes() {
   const location = useLocation();
 
   useEffect(() => {
-    if (!loading && user && (location.pathname === '/' || location.pathname.startsWith('/signup'))) {
+    if (!loading && user && (location.pathname === '/' || location.pathname === '/login' || location.pathname.startsWith('/signup'))) {
       navigate('/dashboard');
     }
   }, [user, loading, navigate, location.pathname]);
@@ -179,7 +175,10 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/update-password" element={<UpdatePassword />} />
       <Route 
         path="/dashboard/*" 
         element={
@@ -190,7 +189,7 @@ function AppRoutes() {
           ) : user ? (
             <Dashboard />
           ) : (
-            <Navigate to="/" replace />
+            <Navigate to="/login" replace />
           )
         } 
       />
@@ -204,7 +203,7 @@ function App() {
       <LanguageProvider>
         <Router>
           <AuthProvider>
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+            <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-200">
               <AppRoutes />
             </div>
           </AuthProvider>
