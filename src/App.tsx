@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -13,7 +13,7 @@ import AuthModal from './components/auth/AuthModal';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import Sidebar from './components/dashboard/Sidebar';
 import DashboardHome from './components/dashboard/DashboardHome';
-import { type Business } from './lib/supabase';
+import { supabase, type Business } from './lib/supabase';
 import Signup from './pages/Signup';
 
 // Import Pages
@@ -67,13 +67,62 @@ function LandingPage() {
 
 function Dashboard() {
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const fetchBusinesses = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      setBusinesses(data || []);
+      if (data && data.length > 0 && !selectedBusiness) {
+        setSelectedBusiness(data[0]);
+      } else if (data && data.length === 0) {
+        // Handle case where user has no businesses, maybe show a creation screen
+      }
+    } catch (error) {
+      console.error('Error fetching businesses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchBusinesses();
+  }, [user]);
+
+  const handleBusinessSelect = (business: Business) => {
+    setSelectedBusiness(business);
+    // Navigate to the dashboard home of the selected business
+    navigate('/dashboard');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <DashboardLayout
       sidebar={
         <Sidebar
+          businesses={businesses}
           selectedBusiness={selectedBusiness}
-          onBusinessSelect={setSelectedBusiness}
+          onBusinessSelect={handleBusinessSelect}
+          onBusinessCreated={fetchBusinesses} // Refresh list when new business is added
         />
       }
     >
@@ -95,18 +144,22 @@ function Dashboard() {
             )
           } 
         />
-        <Route path="/products" element={<Products />} />
-        <Route path="/sales" element={<Sales />} />
-        <Route path="/students" element={<Students />} />
-        <Route path="/tenants" element={<Tenants />} />
-        <Route path="/rooms" element={<Rooms />} />
-        <Route path="/listings" element={<Listings />} />
-        <Route path="/bookings" element={<Bookings />} />
-        <Route path="/fee-payments" element={<FeePayments />} />
-        <Route path="/rent-payments" element={<RentPayments />} />
-        <Route path="/staff" element={<Staff />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/settings" element={<Settings />} />
+        {selectedBusiness && (
+          <>
+            <Route path="/products" element={<Products businessId={selectedBusiness.id} />} />
+            <Route path="/sales" element={<Sales businessId={selectedBusiness.id} />} />
+            <Route path="/students" element={<Students businessId={selectedBusiness.id} />} />
+            <Route path="/tenants" element={<Tenants businessId={selectedBusiness.id} />} />
+            <Route path="/rooms" element={<Rooms businessId={selectedBusiness.id} />} />
+            <Route path="/listings" element={<Listings businessId={selectedBusiness.id} />} />
+            <Route path="/bookings" element={<Bookings businessId={selectedBusiness.id} />} />
+            <Route path="/fee-payments" element={<FeePayments businessId={selectedBusiness.id} />} />
+            <Route path="/rent-payments" element={<RentPayments businessId={selectedBusiness.id} />} />
+            <Route path="/staff" element={<Staff businessId={selectedBusiness.id} />} />
+            <Route path="/reports" element={<Reports businessId={selectedBusiness.id} />} />
+            <Route path="/settings" element={<Settings business={selectedBusiness} onBusinessUpdate={fetchBusinesses} />} />
+          </>
+        )}
       </Routes>
     </DashboardLayout>
   );
@@ -115,12 +168,13 @@ function Dashboard() {
 function AppRoutes() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && (location.pathname === '/' || location.pathname.startsWith('/signup'))) {
       navigate('/dashboard');
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, location.pathname]);
   
   return (
     <Routes>
@@ -150,7 +204,7 @@ function App() {
       <LanguageProvider>
         <Router>
           <AuthProvider>
-            <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
               <AppRoutes />
             </div>
           </AuthProvider>

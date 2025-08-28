@@ -115,6 +115,18 @@ export interface Tenant {
   updated_at: string;
 }
 
+export interface RentPayment {
+  id: string;
+  tenant_id: string;
+  business_id: string;
+  amount: number;
+  payment_date: string;
+  status: PaymentStatus;
+  mpesa_code?: string;
+  notes?: string;
+  created_at: string;
+}
+
 export interface Student {
   id: string;
   business_id: string;
@@ -128,9 +140,23 @@ export interface Student {
   parent_email?: string;
   address?: string;
   fee_amount: number;
+  fee_status: PaymentStatus; // Added for consistency
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface FeePayment {
+  id: string;
+  student_id: string;
+  business_id: string;
+  amount: number;
+  payment_date: string;
+  status: PaymentStatus;
+  mpesa_code?: string;
+  notes?: string;
+  term: string; // Added field
+  created_at: string;
 }
 
 export interface Room {
@@ -142,8 +168,20 @@ export interface Room {
   rate_per_night: number;
   description?: string;
   amenities: string[];
-  status: string;
+  status: 'Available' | 'Occupied' | 'Cleaning' | 'Maintenance';
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Listing { // For Airbnb
+  id: string;
+  business_id: string;
+  name: string;
+  location: string;
+  status: 'Listed' | 'Booked' | 'Maintenance';
+  rate_per_night: number;
+  image_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -151,7 +189,8 @@ export interface Room {
 export interface Booking {
   id: string;
   business_id: string;
-  room_id: string;
+  room_id?: string; // Can be null if it's an Airbnb listing
+  listing_id?: string;
   guest_name: string;
   guest_phone: string;
   guest_email?: string;
@@ -160,7 +199,7 @@ export interface Booking {
   guests_count: number;
   total_amount: number;
   paid_amount: number;
-  booking_status: string;
+  booking_status: 'Confirmed' | 'Checked-in' | 'Checked-out' | 'Cancelled';
   payment_status: PaymentStatus;
   notes?: string;
   created_at: string;

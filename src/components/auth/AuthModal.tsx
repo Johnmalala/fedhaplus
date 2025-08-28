@@ -27,7 +27,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       await signIn(email, password);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      if (errorMessage.includes('Invalid login credentials')) {
+        setError('Invalid email or password. Please try again.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

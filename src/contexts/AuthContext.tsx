@@ -2,9 +2,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, type Profile, type BusinessType } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
 
-interface NewBusinessInfo {
+interface SignUpInfo {
   businessName: string;
   fullName: string;
+  phone: string;
   businessType: BusinessType;
 }
 
@@ -14,8 +15,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signInWithPhone: (phone: string) => Promise<void>;
-  verifyOtpAndCreateBusiness: (phone: string, token: string, info: NewBusinessInfo) => Promise<void>;
+  signUpAndCreateBusiness: (email: string, password: string, info: SignUpInfo) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,48 +67,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signInWithPhone = async (phone: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      phone,
+  const signUpAndCreateBusiness = async (email: string, password: string, info: SignUpInfo) => {
+    // For automatic login after signup, you may need to disable "Confirm email" in your Supabase Auth settings.
+    // Otherwise, the user must verify their email before they can log in.
+    const { data: { session }, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        // This data is passed to the `handle_new_user` trigger in Supabase.
+        data: {
+          full_name: info.fullName,
+          phone: info.phone,
+        }
+      }
     });
-    if (error) throw error;
-  };
 
-  const verifyOtpAndCreateBusiness = async (phone: string, token: string, info: NewBusinessInfo) => {
-    const { data: { session }, error: otpError } = await supabase.auth.verifyOtp({
-      phone,
-      token,
-      type: 'sms',
-    });
-
-    if (otpError) throw otpError;
-    if (!session || !session.user) throw new Error('Could not sign in.');
-
-    // Update user's profile with full name
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ full_name: info.fullName })
-      .eq('id', session.user.id);
-
-    if (profileError) {
-      console.error("Error updating profile:", profileError);
-      // Non-fatal, continue with business creation
-    }
-
-    // Create the business
+    if (signUpError) throw signUpError;
+    if (!session || !session.user) throw new Error('Could not sign up user. If email confirmation is enabled, please check your email to verify your account.');
+    
+    // The handle_new_user trigger in Supabase creates the profile.
+    // Now, we create the associated business and staff role.
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .insert({
         name: info.businessName,
         business_type: info.businessType,
         owner_id: session.user.id,
+        phone: info.phone,
       })
       .select()
       .single();
 
     if (businessError) throw businessError;
 
-    // Create owner role in staff_roles
     const { error: staffError } = await supabase
       .from('staff_roles')
       .insert({
@@ -121,7 +112,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
     if (staffError) throw staffError;
 
-    // The onAuthStateChange listener will handle setting the user and profile state.
+    // TODO: Implement sending a welcome SMS via a Supabase Edge Function
+    console.log(`Simulating welcome SMS to ${info.phone}: "Karibu Fedha Plus! Biashara yako imeanzishwa."`);
+
+    // The onAuthStateChange listener will handle setting the user and profile state, which triggers the redirect to the dashboard.
   };
 
   const signIn = async (email: string, password: string) => {
@@ -144,8 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       signIn,
       signOut,
-      signInWithPhone,
-      verifyOtpAndCreateBusiness,
+      signUpAndCreateBusiness,
     }}>
       {children}
     </AuthContext.Provider>

@@ -15,17 +15,18 @@ const planMap: Record<string, string> = {
 };
 
 export default function Signup() {
-  const [step, setStep] = useState<'details' | 'otp'>('details');
   const [businessName, setBusinessName] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
   const navigate = useNavigate();
   const location = useLocation();
-  const { signInWithPhone, verifyOtpAndCreateBusiness } = useAuth();
+  const { signUpAndCreateBusiness } = useAuth();
   
   const query = new URLSearchParams(location.search);
   const plan = query.get('plan') as BusinessType | null;
@@ -37,22 +38,12 @@ export default function Signup() {
     }
   }, [plan, navigate]);
 
-  const handleDetailsSubmit = async (e: React.FormEvent) => {
+  const handleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-      await signInWithPhone(phone);
-      setStep('otp');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send OTP. Please check the phone number.');
-    } finally {
-      setLoading(false);
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
     }
-  };
-
-  const handleOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
     if (!plan) {
       setError('No business plan selected.');
       return;
@@ -60,14 +51,16 @@ export default function Signup() {
     setLoading(true);
     setError('');
     try {
-      await verifyOtpAndCreateBusiness(phone, otp, {
+      await signUpAndCreateBusiness(email, password, {
         businessName,
         fullName,
+        phone,
         businessType: plan,
       });
-      // On successful verification and creation, the AuthProvider will redirect to the dashboard
+      // On successful signup, the AuthProvider will redirect to the dashboard.
+      // Supabase may show a "Check your email" message if confirmation is enabled.
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid OTP or failed to create business.');
+      setError(err instanceof Error ? err.message : 'Failed to create account. The email might already be in use.');
     } finally {
       setLoading(false);
     }
@@ -94,90 +87,96 @@ export default function Signup() {
           </div>
         )}
 
-        {step === 'details' && (
-          <form className="mt-8 space-y-6" onSubmit={handleDetailsSubmit}>
-            <div className="rounded-md shadow-sm -space-y-px">
-              <div>
-                <label htmlFor="business-name" className="sr-only">Business Name</label>
-                <Input
-                  id="business-name"
-                  name="business-name"
-                  type="text"
-                  required
-                  className="rounded-t-md"
-                  placeholder="Business Name (e.g., Mlimani Academy)"
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="full-name" className="sr-only">Your Name</label>
-                <Input
-                  id="full-name"
-                  name="full-name"
-                  type="text"
-                  required
-                  className="border-t-0"
-                  placeholder="Your Name (e.g., Jane Muthoni)"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="phone" className="sr-only">Phone Number</label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  required
-                  className="rounded-b-md border-t-0"
-                  placeholder="Phone Number (e.g., 254712345678)"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </div>
-            </div>
+        <form className="mt-8 space-y-6" onSubmit={handleSignUpSubmit}>
+          <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Sending OTP...' : 'Continue'}
-              </Button>
-            </div>
-          </form>
-        )}
-
-        {step === 'otp' && (
-          <form className="mt-8 space-y-6" onSubmit={handleOtpSubmit}>
-            <p className="text-center text-gray-600 dark:text-gray-400">
-              We've sent a 6-digit code to <span className="font-medium text-gray-900 dark:text-white">{phone}</span>. Please enter it below.
-            </p>
-            <div>
-              <label htmlFor="otp" className="sr-only">One-Time Password</label>
+              <label htmlFor="business-name" className="sr-only">Business Name</label>
               <Input
-                id="otp"
-                name="otp"
+                id="business-name"
+                name="business-name"
                 type="text"
                 required
-                placeholder="Enter 6-digit OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                className="rounded-t-md"
+                placeholder="Business Name (e.g., Mlimani Academy)"
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
               />
             </div>
             <div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Verifying...' : 'Verify & Create Account'}
-              </Button>
+              <label htmlFor="full-name" className="sr-only">Your Name</label>
+              <Input
+                id="full-name"
+                name="full-name"
+                type="text"
+                required
+                className="border-t-0"
+                placeholder="Your Name (e.g., Jane Muthoni)"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
             </div>
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setStep('details')}
-                className="text-sm font-medium text-primary-600 hover:text-primary-500"
-              >
-                Entered the wrong number?
-              </button>
+            <div>
+              <label htmlFor="phone" className="sr-only">Phone Number</label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                required
+                className="border-t-0"
+                placeholder="Phone Number (e.g., 254712345678)"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
             </div>
-          </form>
-        )}
+            <div>
+              <label htmlFor="email-address" className="sr-only">Email address</label>
+              <Input
+                id="email-address"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="border-t-0"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="password-signup" className="sr-only">Password</label>
+              <Input
+                id="password-signup"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                className="border-t-0"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="confirm-password" className="sr-only">Confirm Password</label>
+              <Input
+                id="confirm-password"
+                name="confirm-password"
+                type="password"
+                autoComplete="new-password"
+                required
+                className="rounded-b-md border-t-0"
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Creating Account...' : 'Create Account & Start Trial'}
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );

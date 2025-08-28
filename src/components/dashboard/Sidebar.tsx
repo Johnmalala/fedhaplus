@@ -17,8 +17,10 @@ import { type Business, type BusinessType } from '../../lib/supabase';
 import BusinessSelector from './BusinessSelector';
 
 interface SidebarProps {
+  businesses: Business[];
   selectedBusiness: Business | null;
   onBusinessSelect: (business: Business) => void;
+  onBusinessCreated: () => void;
 }
 
 const navigationMap: Record<BusinessType, Array<{ name: string; href: string; icon: any; end?: boolean }>> = {
@@ -68,7 +70,7 @@ const navigationMap: Record<BusinessType, Array<{ name: string; href: string; ic
   ],
 };
 
-export default function Sidebar({ selectedBusiness, onBusinessSelect }: SidebarProps) {
+export default function Sidebar({ businesses, selectedBusiness, onBusinessSelect, onBusinessCreated }: SidebarProps) {
   const navigation = selectedBusiness ? navigationMap[selectedBusiness.business_type] || [] : [];
 
   return (
@@ -85,8 +87,10 @@ export default function Sidebar({ selectedBusiness, onBusinessSelect }: SidebarP
 
       {/* Business Selector */}
       <BusinessSelector
+        businesses={businesses}
         selectedBusiness={selectedBusiness}
         onBusinessSelect={onBusinessSelect}
+        onBusinessCreated={onBusinessCreated}
       />
 
       {/* Navigation */}
@@ -95,7 +99,7 @@ export default function Sidebar({ selectedBusiness, onBusinessSelect }: SidebarP
           {navigation.map((item) => (
             <NavLink
               key={item.name}
-              to={item.href}
+              to={`/dashboard/${item.href}`}
               end={item.end}
               className={({ isActive }) =>
                 `group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${

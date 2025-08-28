@@ -7,7 +7,7 @@ import {
   ArrowTrendingUpIcon,
 } from '@heroicons/react/24/outline';
 import { supabase, type Business } from '../../lib/supabase';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 interface DashboardHomeProps {
@@ -24,6 +24,7 @@ interface DashboardStats {
 }
 
 export default function DashboardHome({ business }: DashboardHomeProps) {
+  const { profile } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     totalRevenue: 0,
     monthlyRevenue: 0,
@@ -33,7 +34,6 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
     revenueGrowth: 0,
   });
   const [loading, setLoading] = useState(true);
-  const { t } = useLanguage();
 
   useEffect(() => {
     if (business?.id) {
@@ -50,122 +50,30 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
       const startOfLastMonth = startOfMonth(subMonths(now, 1));
       const endOfLastMonth = endOfMonth(subMonths(now, 1));
 
-      // Get revenue stats based on business type
-      let revenueQuery;
-      let customerCountQuery;
+      // This logic can be moved to a Supabase function for efficiency
+      const { data, error } = await supabase.rpc('get_dashboard_stats', {
+        p_business_id: business.id
+      });
+      
+      if (error) throw error;
 
-      switch (business.business_type) {
-        case 'hardware':
-        case 'supermarket':
-          revenueQuery = supabase
-            .from('sales')
-            .select('total_amount, created_at')
-            .eq('business_id', business.id);
-          
-          customerCountQuery = supabase
-            .from('sales')
-            .select('customer_phone', { count: 'exact', head: true })
-            .eq('business_id', business.id)
-            .not('customer_phone', 'is', null);
-          break;
+      const allRevenue = data.revenue_data || [];
 
-        case 'rentals':
-          const { data: tenants, error: tenantsError } = await supabase.from('tenants').select('id').eq('business_id', business.id);
-          if (tenantsError) throw tenantsError;
-          const tenantIds = tenants.map(t => t.id);
-
-          revenueQuery = supabase
-            .from('rent_payments')
-            .select('amount, created_at')
-            .in('tenant_id', tenantIds)
-            .eq('status', 'paid');
-          
-          customerCountQuery = supabase
-            .from('tenants')
-            .select('id', { count: 'exact', head: true })
-            .eq('business_id', business.id)
-            .eq('is_active', true);
-          break;
-
-        case 'school':
-          const { data: students, error: studentsError } = await supabase.from('students').select('id').eq('business_id', business.id);
-          if (studentsError) throw studentsError;
-          const studentIds = students.map(s => s.id);
-
-          revenueQuery = supabase
-            .from('fee_payments')
-            .select('amount, created_at')
-            .in('student_id', studentIds)
-            .eq('status', 'paid');
-          
-          customerCountQuery = supabase
-            .from('students')
-            .select('id', { count: 'exact', head: true })
-            .eq('business_id', business.id)
-            .eq('is_active', true);
-          break;
-
-        case 'hotel':
-        case 'airbnb':
-          revenueQuery = supabase
-            .from('bookings')
-            .select('paid_amount, created_at')
-            .eq('business_id', business.id);
-          
-          customerCountQuery = supabase
-            .from('bookings')
-            .select('guest_phone', { count: 'exact', head: true })
-            .eq('business_id', business.id)
-            .not('guest_phone', 'is', null);
-          break;
-
-        default:
-          revenueQuery = supabase
-            .from('sales')
-            .select('total_amount, created_at')
-            .eq('business_id', business.id);
-          
-          customerCountQuery = supabase
-            .from('sales')
-            .select('customer_phone', { count: 'exact', head: true })
-            .eq('business_id', business.id);
-      }
-
-      // Execute queries
-      const [revenueData, customerData] = await Promise.all([
-        revenueQuery,
-        customerCountQuery,
-      ]);
-
-      if (revenueData.error) throw revenueData.error;
-      if (customerData.error) throw customerData.error;
-
-      // Calculate stats
-      const allRevenue = revenueData.data || [];
-      const totalRevenue = allRevenue.reduce((sum, item) => {
-        const amount = item.total_amount || item.amount || item.paid_amount || 0;
-        return sum + amount;
-      }, 0);
-
+      const totalRevenue = allRevenue.reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
+      
       const currentMonthRevenue = allRevenue
-        .filter(item => {
+        .filter((item: any) => {
           const date = new Date(item.created_at);
           return date >= startOfCurrentMonth && date <= endOfCurrentMonth;
         })
-        .reduce((sum, item) => {
-          const amount = item.total_amount || item.amount || item.paid_amount || 0;
-          return sum + amount;
-        }, 0);
+        .reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
 
       const lastMonthRevenue = allRevenue
-        .filter(item => {
+        .filter((item: any) => {
           const date = new Date(item.created_at);
           return date >= startOfLastMonth && date <= endOfLastMonth;
         })
-        .reduce((sum, item) => {
-          const amount = item.total_amount || item.amount || item.paid_amount || 0;
-          return sum + amount;
-        }, 0);
+        .reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
 
       const revenueGrowth = lastMonthRevenue > 0 
         ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
@@ -175,16 +83,18 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
         totalRevenue,
         monthlyRevenue: currentMonthRevenue,
         totalTransactions: allRevenue.length,
-        monthlyTransactions: allRevenue.filter(item => {
+        monthlyTransactions: allRevenue.filter((item: any) => {
           const date = new Date(item.created_at);
           return date >= startOfCurrentMonth && date <= endOfCurrentMonth;
         }).length,
-        totalCustomers: customerData.count || 0,
+        totalCustomers: data.customer_count || 0,
         revenueGrowth,
       });
 
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
+      // Fallback to zeroed stats on error
+      setStats({ totalRevenue: 0, monthlyRevenue: 0, totalTransactions: 0, monthlyTransactions: 0, totalCustomers: 0, revenueGrowth: 0 });
     } finally {
       setLoading(false);
     }
@@ -236,7 +146,7 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Welcome back!
+          Karibu, {profile?.full_name || 'User'}!
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
           Here'"'"'s what'"'"'s happening with {business.name} today.
