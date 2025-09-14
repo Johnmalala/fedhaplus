@@ -34,7 +34,7 @@ export default function ForgotPassword() {
       footerContent={
         <>
           Remember your password?{' '}
-          <Link to="/login" className="font-medium text-primary-600 hover:underline dark:text-primary-400">
+          <Link to="/auth" className="font-medium text-primary-600 hover:underline dark:text-primary-400">
             Log in
           </Link>
         </>

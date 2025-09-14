@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -12,9 +12,8 @@ import Footer from './components/Footer';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import Sidebar from './components/dashboard/Sidebar';
 import DashboardHome from './components/dashboard/DashboardHome';
-import { supabase, type Business } from './lib/supabase';
-import Signup from './pages/Signup';
-import Login from './pages/Login';
+import { supabase, type Business, type BusinessType } from './lib/supabase';
+import AuthPage from './pages/Auth';
 import ForgotPassword from './pages/ForgotPassword';
 import UpdatePassword from './pages/UpdatePassword';
 
@@ -35,9 +34,8 @@ import Settings from './pages/Settings';
 function LandingPage() {
   const navigate = useNavigate();
 
-  const handleSelectBusinessType = (plan: string) => {
-    const planKey = plan.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-');
-    navigate(`/signup?plan=${planKey}`);
+  const handleSelectBusinessType = (type: BusinessType) => {
+    navigate(`/auth?type=${type}`);
   };
 
   const handleGetStarted = () => {
@@ -67,38 +65,51 @@ function Dashboard() {
   const [loadingBusinesses, setLoadingBusinesses] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const fetchBusinesses = async () => {
+  const fetchBusinesses = useCallback(async () => {
     if (!user) return;
     setLoadingBusinesses(true);
     try {
-      const { data, error } = await supabase
-        .from('businesses')
-        .select('*')
-        .eq('owner_id', user.id)
-        .order('created_at', { ascending: false });
+      const { data: fetchedBusinesses, error } = await supabase.rpc('get_my_businesses');
 
-      if (error) throw error;
-      
-      const fetchedBusinesses = data || [];
-      setBusinesses(fetchedBusinesses);
-      if (fetchedBusinesses.length > 0 && !selectedBusiness) {
-        setSelectedBusiness(fetchedBusinesses[0]);
+      if (error) {
+        console.error('Error fetching user businesses:', error);
+        throw error;
       }
+        
+      setBusinesses(fetchedBusinesses || []);
+
+      const query = new URLSearchParams(location.search);
+      const typeFromUrl = query.get('type') as BusinessType | null;
+
+      let businessToSelect: Business | null = null;
+      if (typeFromUrl) {
+        businessToSelect = fetchedBusinesses?.find(b => b.business_type === typeFromUrl) || null;
+      }
+
+      if (!businessToSelect && fetchedBusinesses && fetchedBusinesses.length > 0) {
+        businessToSelect = fetchedBusinesses[0];
+      }
+      
+      setSelectedBusiness(businessToSelect);
+
     } catch (error) {
-      console.error('Error fetching businesses:', error);
+      console.error('Error processing businesses:', error);
+      setBusinesses([]);
+      setSelectedBusiness(null);
     } finally {
       setLoadingBusinesses(false);
     }
-  };
+  }, [user, location.search]);
   
   useEffect(() => {
     fetchBusinesses();
-  }, [user]);
+  }, [fetchBusinesses]);
 
   const handleBusinessSelect = (business: Business) => {
     setSelectedBusiness(business);
-    navigate('/dashboard');
+    navigate(`/dashboard?type=${business.business_type}`);
   };
 
   return (
@@ -161,16 +172,21 @@ function AppRoutes() {
   const location = useLocation();
 
   useEffect(() => {
-    if (!loading && user && (location.pathname === '/' || location.pathname === '/login' || location.pathname.startsWith('/signup'))) {
-      navigate('/dashboard');
+    if (!loading && user && (location.pathname === '/' || location.pathname.startsWith('/auth'))) {
+      const query = new URLSearchParams(location.search);
+      const typeFromUrl = query.get('type');
+      if (typeFromUrl) {
+        navigate(`/dashboard?type=${typeFromUrl}`);
+      } else {
+        navigate('/dashboard');
+      }
     }
-  }, [user, loading, navigate, location.pathname]);
+  }, [user, loading, navigate, location.pathname, location.search]);
   
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
+      <Route path="/auth" element={<AuthPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/update-password" element={<UpdatePassword />} />
       <Route 
@@ -183,7 +199,7 @@ function AppRoutes() {
           ) : user ? (
             <Dashboard />
           ) : (
-            <Navigate to="/login" replace />
+            <Navigate to="/" replace />
           )
         } 
       />

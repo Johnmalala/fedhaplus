@@ -73,7 +73,7 @@ export default function Header({ onGetStarted }: HeaderProps) {
 
             {/* Auth Buttons */}
             <Link 
-              to="/login"
+              to="/auth"
               className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 text-sm font-medium"
             >
               {t('nav.login')}

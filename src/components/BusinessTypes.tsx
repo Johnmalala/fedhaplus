@@ -8,16 +8,18 @@ import {
   AcademicCapIcon
 } from '@heroicons/react/24/outline';
 import { useLanguage } from '../contexts/LanguageContext';
+import { BusinessType } from '../lib/supabase';
 
 interface BusinessTypesProps {
-  onSelectBusinessType: (plan: string) => void;
+  onSelectBusinessType: (type: BusinessType) => void;
 }
 
 export default function BusinessTypes({ onSelectBusinessType }: BusinessTypesProps) {
   const { t } = useLanguage();
 
-  const businessTypes = [
+  const businessTypes: { type: BusinessType, icon: any, title: string, price: string, description: string, popular: boolean }[] = [
     {
+      type: 'hardware',
       icon: WrenchScrewdriverIcon,
       title: t('business.hardware.title'),
       price: t('business.hardware.price'),
@@ -25,6 +27,7 @@ export default function BusinessTypes({ onSelectBusinessType }: BusinessTypesPro
       popular: false,
     },
     {
+      type: 'supermarket',
       icon: BuildingStorefrontIcon,
       title: t('business.supermarket.title'),
       price: t('business.supermarket.price'),
@@ -32,6 +35,7 @@ export default function BusinessTypes({ onSelectBusinessType }: BusinessTypesPro
       popular: false,
     },
     {
+      type: 'rentals',
       icon: HomeIcon,
       title: t('business.rentals.title'),
       price: t('business.rentals.price'),
@@ -39,6 +43,7 @@ export default function BusinessTypes({ onSelectBusinessType }: BusinessTypesPro
       popular: false,
     },
     {
+      type: 'airbnb',
       icon: BuildingOfficeIcon,
       title: t('business.airbnb.title'),
       price: t('business.airbnb.price'),
@@ -46,6 +51,7 @@ export default function BusinessTypes({ onSelectBusinessType }: BusinessTypesPro
       popular: false,
     },
     {
+      type: 'hotel',
       icon: BuildingLibraryIcon,
       title: t('business.hotel.title'),
       price: t('business.hotel.price'),
@@ -53,6 +59,7 @@ export default function BusinessTypes({ onSelectBusinessType }: BusinessTypesPro
       popular: false,
     },
     {
+      type: 'school',
       icon: AcademicCapIcon,
       title: t('business.school.title'),
       price: t('business.school.price'),
@@ -107,7 +114,7 @@ export default function BusinessTypes({ onSelectBusinessType }: BusinessTypesPro
                 </p>
 
                 <button 
-                  onClick={() => onSelectBusinessType(business.title)}
+                  onClick={() => onSelectBusinessType(business.type)}
                   className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 ${
                   business.popular
                     ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-lg hover:shadow-xl'
