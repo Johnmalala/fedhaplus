@@ -23,5 +23,5 @@ export function CardContent({ children, className }: CardProps) {
 }
 
 export function CardFooter({ children, className }: CardProps) {
-  return <div className={clsx('p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-b-xl', className)}>{children}</div>;
+  return <div className={clsx('flex justify-end p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-b-xl', className)}>{children}</div>;
 }
