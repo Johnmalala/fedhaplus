@@ -153,7 +153,7 @@ function Dashboard() {
         {selectedBusiness && (
           <>
             <Route path="/products" element={<Products businessId={selectedBusiness.id} />} />
-            <Route path="/sales" element={<Sales businessId={selectedBusiness.id} />} />
+            <Route path="/sales" element={<Sales businessId={selectedBusiness.id} businessType={selectedBusiness.business_type} />} />
             <Route path="/students" element={<Students businessId={selectedBusiness.id} />} />
             <Route path="/tenants" element={<Tenants businessId={selectedBusiness.id} />} />
             <Route path="/rooms" element={<Rooms businessId={selectedBusiness.id} />} />

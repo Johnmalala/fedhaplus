@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { supabase, type Sale, type Product } from '../lib/supabase';
+import { supabase, type Sale, type Product, type Business } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import PageHeader from '../components/PageHeader';
 import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '../components/ui/Table';
 import { Badge } from '../components/ui/Badge';
-import { PlusIcon, MoreVertical, XIcon, Trash2 } from 'lucide-react';
+import { PlusIcon, MoreVertical, Trash2, ScanBarcode } from 'lucide-react';
 import { format } from 'date-fns';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
+import { useZxing } from 'react-zxing';
 
 interface SalesPageProps {
   businessId: string;
+  businessType: Business['business_type'];
 }
 
 interface SaleItemInput {
@@ -22,12 +24,30 @@ interface SaleItemInput {
   unit_price: number;
 }
 
-export default function Sales({ businessId }: SalesPageProps) {
+const BarcodeScanner = ({ onScanSuccess }: { onScanSuccess: (text: string) => void }) => {
+  const { ref } = useZxing({
+    onResult(result) {
+      onScanSuccess(result.getText());
+    },
+  });
+
+  return (
+    <div className="relative">
+      <video ref={ref} className="w-full h-64 object-cover rounded-lg bg-gray-900" />
+      <div className="absolute inset-0 border-4 border-primary-500 rounded-lg animate-pulse"></div>
+      <p className="text-center text-white mt-2">Point camera at a barcode</p>
+    </div>
+  );
+};
+
+export default function Sales({ businessId, businessType }: SalesPageProps) {
   const { user } = useAuth();
+  
   const [sales, setSales] = useState<Sale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const [saleItems, setSaleItems] = useState<SaleItemInput[]>([]);
   const [selectedProduct, setSelectedProduct] = useState('');
@@ -54,7 +74,7 @@ export default function Sales({ businessId }: SalesPageProps) {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, selling_price')
+        .select('id, name, selling_price, sku')
         .eq('business_id', businessId)
         .gt('stock_quantity', 0);
       if (error) throw error;
@@ -71,24 +91,39 @@ export default function Sales({ businessId }: SalesPageProps) {
     }
   }, [businessId, fetchSales, fetchProducts]);
 
-  const handleAddProductToSale = () => {
+  const addProductToSale = (product: Product) => {
+    if (saleItems.find(item => item.product_id === product.id)) {
+      // If item exists, increment quantity
+      setSaleItems(prev => prev.map(item => 
+        item.product_id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+      ));
+    } else {
+      // Otherwise, add new item
+      setSaleItems(prev => [...prev, {
+        product_id: product.id,
+        name: product.name,
+        quantity: 1,
+        unit_price: product.selling_price
+      }]);
+    }
+  };
+
+  const handleSelectProduct = () => {
     if (!selectedProduct) return;
     const product = products.find(p => p.id === selectedProduct);
     if (!product) return;
-
-    // Check if product is already in the list
-    if (saleItems.find(item => item.product_id === product.id)) {
-      // Maybe increment quantity instead? For now, just prevent duplicates.
-      return;
-    }
-
-    setSaleItems(prev => [...prev, {
-      product_id: product.id,
-      name: product.name,
-      quantity: 1,
-      unit_price: product.selling_price
-    }]);
+    addProductToSale(product);
     setSelectedProduct('');
+  };
+
+  const handleScanSuccess = (scannedSku: string) => {
+    const product = products.find(p => p.sku === scannedSku);
+    if (product) {
+      addProductToSale(product);
+      setIsScannerOpen(false); // Close scanner on successful scan
+    } else {
+      alert(`Product with SKU "${scannedSku}" not found.`);
+    }
   };
 
   const handleItemQuantityChange = (productId: string, quantity: number) => {
@@ -123,8 +158,8 @@ export default function Sales({ businessId }: SalesPageProps) {
 
       if (error) throw error;
 
-      await fetchSales(); // Refetch sales list
-      await fetchProducts(); // Refetch products to update stock
+      await fetchSales();
+      await fetchProducts();
       setIsModalOpen(false);
       setSaleItems([]);
     } catch (error) {
@@ -185,16 +220,26 @@ export default function Sales({ businessId }: SalesPageProps) {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Record New Sale">
         <form onSubmit={handleCreateSale} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Add Product</label>
-            <div className="flex space-x-2">
-              <select value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)} className="flex-grow px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:text-white">
-                <option value="" disabled>Select a product</option>
-                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-              <Button type="button" onClick={handleAddProductToSale}>Add</Button>
+          {isScannerOpen ? (
+            <div>
+              <BarcodeScanner onScanSuccess={handleScanSuccess} />
+              <Button type="button" variant="secondary" className="w-full mt-2" onClick={() => setIsScannerOpen(false)}>Close Scanner</Button>
             </div>
-          </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Add Product</label>
+              <div className="flex space-x-2">
+                <select value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)} className="flex-grow px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:text-white">
+                  <option value="" disabled>Select a product</option>
+                  {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                <Button type="button" onClick={handleSelectProduct}>Add</Button>
+                {businessType === 'supermarket' && (
+                  <Button type="button" variant="secondary" icon={<ScanBarcode />} onClick={() => setIsScannerOpen(true)} />
+                )}
+              </div>
+            </div>
+          )}
           
           {saleItems.length > 0 && (
             <div className="space-y-2 max-h-60 overflow-y-auto pr-2">

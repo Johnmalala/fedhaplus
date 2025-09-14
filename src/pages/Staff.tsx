@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase, type StaffRole as StaffRoleType } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
 import PageHeader from '../components/PageHeader';
 import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
-import { PlusIcon, UserCircle, MoreVertical } from 'lucide-react';
+import { PlusIcon, UserCircle, MoreVertical, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Menu, Transition } from '@headlessui/react';
+import { ConfirmDeleteModal } from '../components/ui/ConfirmDeleteModal';
 
 interface StaffPageProps {
   businessId: string;
@@ -20,7 +21,9 @@ type StaffMember = StaffRoleType & {
 export default function Staff({ businessId }: StaffPageProps) {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [togglingStaff, setTogglingStaff] = useState<StaffMember | null>(null);
+  
   const [invite, setInvite] = useState({ email: '', role: 'cashier' as StaffRoleType['role'] });
   const [inviteError, setInviteError] = useState('');
 
@@ -66,12 +69,30 @@ export default function Staff({ businessId }: StaffPageProps) {
 
       if (error) throw error;
 
-      await fetchStaff(); // Refetch staff list
-      setIsModalOpen(false);
+      await fetchStaff();
+      setIsInviteModalOpen(false);
       setInvite({ email: '', role: 'cashier' });
     } catch (error) {
       console.error('Error inviting staff:', error);
       setInviteError(error instanceof Error ? error.message : 'An unknown error occurred.');
+    }
+  };
+
+  const handleToggleActive = async () => {
+    if (!togglingStaff) return;
+    try {
+      const { data, error } = await supabase
+        .from('staff_roles')
+        .update({ is_active: !togglingStaff.is_active })
+        .eq('id', togglingStaff.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      setStaff(prev => prev.map(s => s.id === data.id ? { ...s, is_active: data.is_active } : s));
+      setTogglingStaff(null);
+    } catch (error) {
+      console.error('Error toggling staff status:', error);
     }
   };
 
@@ -83,7 +104,7 @@ export default function Staff({ businessId }: StaffPageProps) {
         title="Staff Management"
         subtitle="Invite and manage staff members for your business."
         actions={
-          <Button icon={<PlusIcon />} onClick={() => setIsModalOpen(true)}>
+          <Button icon={<PlusIcon />} onClick={() => setIsInviteModalOpen(true)}>
             Invite Staff
           </Button>
         }
@@ -97,7 +118,7 @@ export default function Staff({ businessId }: StaffPageProps) {
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">No staff members found</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Invite your first staff member to get started.</p>
               <div className="mt-6">
-                  <Button icon={<PlusIcon />} onClick={() => setIsModalOpen(true)}>
+                  <Button icon={<PlusIcon />} onClick={() => setIsInviteModalOpen(true)}>
                       Invite Staff
                   </Button>
               </div>
@@ -115,10 +136,26 @@ export default function Staff({ businessId }: StaffPageProps) {
                   </div>
                   <div className="flex items-center space-x-4">
                     <Badge>{staffMember.role}</Badge>
-                    <Badge variant={staffMember.is_active ? 'success' : 'warning'}>
-                      {staffMember.is_active ? 'Active' : 'Invited'}
+                    <Badge variant={staffMember.is_active ? 'success' : 'danger'}>
+                      {staffMember.is_active ? 'Active' : 'Inactive'}
                     </Badge>
-                    <Button variant="ghost" size="sm" icon={<MoreVertical />} />
+                     <Menu as="div" className="relative inline-block text-left">
+                        <Menu.Button as={Button} variant="ghost" size="sm" icon={<MoreVertical className="h-4 w-4" />} />
+                        <Transition as={React.Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
+                          <Menu.Items className="absolute right-0 z-10 mt-2 w-40 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black/5 focus:outline-none">
+                            <div className="px-1 py-1">
+                              <Menu.Item>
+                                {({ active }) => (
+                                  <button onClick={() => setTogglingStaff(staffMember)} className={`${active ? 'bg-primary-100 dark:bg-gray-700' : ''} text-gray-900 dark:text-gray-100 group flex w-full items-center rounded-md px-2 py-2 text-sm`}>
+                                    {staffMember.is_active ? <ToggleLeft className="mr-2 h-4 w-4 text-red-500" /> : <ToggleRight className="mr-2 h-4 w-4 text-green-500" />}
+                                    {staffMember.is_active ? 'Deactivate' : 'Activate'}
+                                  </button>
+                                )}
+                              </Menu.Item>
+                            </div>
+                          </Menu.Items>
+                        </Transition>
+                      </Menu>
                   </div>
                 </li>
               ))}
@@ -127,7 +164,7 @@ export default function Staff({ businessId }: StaffPageProps) {
         </CardContent>
       </Card>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Invite Staff Member">
+      <Modal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)} title="Invite Staff Member">
         <form onSubmit={handleInviteStaff} className="space-y-4">
           {inviteError && <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm">{inviteError}</div>}
           <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -143,11 +180,25 @@ export default function Staff({ businessId }: StaffPageProps) {
             </select>
           </div>
           <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="secondary" onClick={() => { setIsModalOpen(false); setInviteError(''); }}>Cancel</Button>
+            <Button type="button" variant="secondary" onClick={() => { setIsInviteModalOpen(false); setInviteError(''); }}>Cancel</Button>
             <Button type="submit">Send Invite</Button>
           </div>
         </form>
       </Modal>
+
+      {togglingStaff && (
+        <ConfirmDeleteModal
+          isOpen={!!togglingStaff}
+          onClose={() => setTogglingStaff(null)}
+          onConfirm={handleToggleActive}
+          itemName={togglingStaff.profiles?.full_name || togglingStaff.profiles?.email || 'this staff member'}
+          loading={false}
+          title={togglingStaff.is_active ? "Deactivate Staff" : "Activate Staff"}
+          message={`Are you sure you want to ${togglingStaff.is_active ? 'deactivate' : 'activate'} this staff member?`}
+          confirmText={togglingStaff.is_active ? "Deactivate" : "Activate"}
+          confirmVariant={togglingStaff.is_active ? "danger" : "primary"}
+        />
+      )}
     </div>
   );
 }

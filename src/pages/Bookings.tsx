@@ -7,8 +7,10 @@ import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '.
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
-import { PlusIcon, MoreVertical } from 'lucide-react';
+import { PlusIcon, MoreVertical, XCircle, Pencil } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
+import { Menu, Transition } from '@headlessui/react';
+import { ConfirmDeleteModal } from '../components/ui/ConfirmDeleteModal';
 
 interface BookingsPageProps {
   businessId: string;
@@ -25,6 +27,7 @@ export default function Bookings({ businessId }: BookingsPageProps) {
   const [availableListings, setAvailableListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(null);
 
   const [newBooking, setNewBooking] = useState({
     guest_name: '',
@@ -32,8 +35,8 @@ export default function Bookings({ businessId }: BookingsPageProps) {
     check_in_date: new Date().toISOString().split('T')[0],
     check_out_date: '',
     guests_count: '1',
-    booking_type: 'room', // 'room' or 'listing'
-    booking_target_id: '', // room_id or listing_id
+    booking_type: 'room',
+    booking_target_id: '',
     total_amount: '',
   });
 
@@ -77,7 +80,6 @@ export default function Bookings({ businessId }: BookingsPageProps) {
   }, [businessId, fetchBookings, fetchAvailability]);
   
   useEffect(() => {
-    // Auto-calculate total amount
     if (newBooking.check_in_date && newBooking.check_out_date && newBooking.booking_target_id) {
       const nights = differenceInDays(new Date(newBooking.check_out_date), new Date(newBooking.check_in_date));
       if (nights > 0) {
@@ -131,6 +133,23 @@ export default function Bookings({ businessId }: BookingsPageProps) {
     } catch (error) {
       console.error('Error adding booking:', error);
       alert(`Failed to add booking: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleCancelBooking = async () => {
+    if (!cancellingBooking) return;
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .update({ booking_status: 'Cancelled' })
+        .eq('id', cancellingBooking.id)
+        .select()
+        .single();
+      if (error) throw error;
+      setBookings(prev => prev.map(b => b.id === data.id ? { ...b, booking_status: 'Cancelled' } : b));
+      setCancellingBooking(null);
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
     }
   };
 
@@ -192,7 +211,22 @@ export default function Bookings({ businessId }: BookingsPageProps) {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" icon={<MoreVertical />} />
+                      <Menu as="div" className="relative inline-block text-left">
+                        <Menu.Button as={Button} variant="ghost" size="sm" icon={<MoreVertical className="h-4 w-4" />} />
+                        <Transition as={React.Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
+                          <Menu.Items className="absolute right-0 z-10 mt-2 w-40 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black/5 focus:outline-none">
+                            <div className="px-1 py-1">
+                              <Menu.Item>
+                                {({ active }) => (
+                                  <button disabled={booking.booking_status === 'Cancelled'} onClick={() => setCancellingBooking(booking)} className={`${active ? 'bg-red-100 dark:bg-red-700' : ''} text-red-700 dark:text-red-400 group flex w-full items-center rounded-md px-2 py-2 text-sm disabled:opacity-50`}>
+                                    <XCircle className="mr-2 h-4 w-4" /> Cancel Booking
+                                  </button>
+                                )}
+                              </Menu.Item>
+                            </div>
+                          </Menu.Items>
+                        </Transition>
+                      </Menu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -229,6 +263,19 @@ export default function Bookings({ businessId }: BookingsPageProps) {
           </div>
         </form>
       </Modal>
+
+      {cancellingBooking && (
+        <ConfirmDeleteModal
+          isOpen={!!cancellingBooking}
+          onClose={() => setCancellingBooking(null)}
+          onConfirm={handleCancelBooking}
+          itemName={`booking for ${cancellingBooking.guest_name}`}
+          loading={false}
+          title="Cancel Booking"
+          message={`Are you sure you want to cancel this booking?`}
+          confirmText="Yes, Cancel"
+        />
+      )}
     </div>
   );
 }

@@ -23,6 +23,7 @@ export default function Products({ businessId }: ProductsPageProps) {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState({
     name: '',
+    sku: '',
     selling_price: '',
     stock_quantity: '',
     category: '',
@@ -60,13 +61,14 @@ export default function Products({ businessId }: ProductsPageProps) {
     if (editingProduct) {
       setProductForm({
         name: editingProduct.name,
+        sku: editingProduct.sku || '',
         selling_price: String(editingProduct.selling_price),
         stock_quantity: String(editingProduct.stock_quantity),
         category: editingProduct.category || '',
         unit: editingProduct.unit,
       });
     } else {
-      setProductForm({ name: '', selling_price: '', stock_quantity: '', category: '', unit: 'piece' });
+      setProductForm({ name: '', sku: '', selling_price: '', stock_quantity: '', category: '', unit: 'piece' });
     }
   }, [editingProduct, isModalOpen]);
 
@@ -191,7 +193,7 @@ export default function Products({ businessId }: ProductsPageProps) {
             <Table>
               <TableHeader>
                 <TableHead>Product Name</TableHead>
-                <TableHead>Category</TableHead>
+                <TableHead>SKU</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Stock</TableHead>
                 <TableHead>Status</TableHead>
@@ -203,7 +205,7 @@ export default function Products({ businessId }: ProductsPageProps) {
                   return (
                     <TableRow key={product.id}>
                       <TableCell><div className="font-medium">{product.name}</div></TableCell>
-                      <TableCell>{product.category}</TableCell>
+                      <TableCell>{product.sku || 'N/A'}</TableCell>
                       <TableCell>KSh {product.selling_price.toLocaleString()}</TableCell>
                       <TableCell>{product.stock_quantity} {product.unit}(s)</TableCell>
                       <TableCell>
@@ -262,6 +264,7 @@ export default function Products({ businessId }: ProductsPageProps) {
       <Modal isOpen={isModalOpen} onClose={closeModal} title={editingProduct ? "Edit Product" : "Add New Product"}>
         <form onSubmit={handleSaveProduct} className="space-y-4">
           <Input name="name" placeholder="Product Name" value={productForm.name} onChange={handleInputChange} required />
+          <Input name="sku" placeholder="SKU / Barcode" value={productForm.sku} onChange={handleInputChange} />
           <Input name="category" placeholder="Category (e.g., Cement)" value={productForm.category} onChange={handleInputChange} />
           <Input name="selling_price" type="number" placeholder="Selling Price (KSh)" value={productForm.selling_price} onChange={handleInputChange} required />
           <Input name="stock_quantity" type="number" placeholder="Stock Quantity" value={productForm.stock_quantity} onChange={handleInputChange} required />
@@ -280,6 +283,9 @@ export default function Products({ businessId }: ProductsPageProps) {
           onConfirm={handleDeleteProduct}
           itemName={deletingProduct.name}
           loading={deleteLoading}
+          title="Confirm Deletion"
+          message={`Are you sure you want to delete ${deletingProduct.name}?`}
+          confirmText="Delete"
         />
       )}
     </div>
