@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   WrenchScrewdriverIcon,
   BuildingStorefrontIcon,
@@ -13,7 +12,6 @@ import { BusinessType } from '../lib/supabase';
 
 export default function BusinessTypes() {
   const { t } = useLanguage();
-  const navigate = useNavigate();
 
   const businessTypes: { type: BusinessType, icon: any, title: string, price: string, description: string, popular: boolean }[] = [
     {
@@ -66,10 +64,6 @@ export default function BusinessTypes() {
     },
   ];
 
-  const handleChoosePlan = () => {
-    navigate('/auth');
-  };
-
   return (
     <div id="pricing" className="py-24 bg-gray-50 dark:bg-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -86,8 +80,8 @@ export default function BusinessTypes() {
           {businessTypes.map((business, index) => (
             <div
               key={index}
-              className={`relative bg-white dark:bg-gray-900 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 ${
-                business.popular ? 'ring-2 ring-primary-500 transform scale-105' : ''
+              className={`relative bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 ${
+                business.popular ? 'ring-2 ring-primary-500' : ''
               }`}
             >
               {business.popular && (
@@ -115,15 +109,14 @@ export default function BusinessTypes() {
                   {business.description}
                 </p>
 
-                <button 
-                  onClick={handleChoosePlan}
-                  className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 ${
+                <div 
+                  className={`w-full py-3 px-6 rounded-xl font-semibold text-center cursor-default ${
                   business.popular
-                    ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-lg hover:shadow-xl'
-                    : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
+                    ? 'bg-primary-600 text-white shadow-lg'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
                 }`}>
-                  Try Free for 30 Days
-                </button>
+                  Included in All Plans
+                </div>
               </div>
             </div>
           ))}

@@ -206,7 +206,7 @@ export default function Bookings({ businessId }: BookingsPageProps) {
         <form onSubmit={handleAddBooking} className="space-y-4">
           <Input name="guest_name" placeholder="Guest Full Name" onChange={handleInputChange} required />
           <Input name="guest_phone" type="tel" placeholder="Guest Phone Number" onChange={handleInputChange} required />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input name="check_in_date" type="date" value={newBooking.check_in_date} onChange={handleInputChange} required />
             <Input name="check_out_date" type="date" value={newBooking.check_out_date} onChange={handleInputChange} required />
           </div>

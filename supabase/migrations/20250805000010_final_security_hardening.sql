@@ -1,18 +1,20 @@
 /*
-# [Final Security Hardening]
-This migration addresses the final "Function Search Path Mutable" security warnings by explicitly setting a secure search_path for all custom functions. This is a non-destructive operation.
+# [Security Fix] Set Function Search Path
+This migration fixes the remaining 'Function Search Path Mutable' security warnings by explicitly setting the search_path for custom functions. This is a security best practice to prevent potential schema-hijacking attacks.
 
 ## Query Description:
-This script uses `ALTER FUNCTION` to set the `search_path` to `public`. This prevents potential hijacking attacks where a malicious user could create a function with the same name in a different schema, causing the wrong function to be executed. This operation is safe and does not affect existing data or logic.
+This operation uses `ALTER FUNCTION` to modify the configuration of existing functions. It is a non-destructive change and does not affect any data or table structures. It only enhances the security of the function execution environment.
 
 ## Metadata:
 - Schema-Category: ["Safe", "Structural"]
 - Impact-Level: ["Low"]
 - Requires-Backup: false
-- Reversible: true
+- Reversible: true (by altering the function again to reset the search_path)
 
 ## Structure Details:
-- Alters all custom functions to set a secure search_path.
+- Functions affected:
+  - `create_booking(uuid, text, text, text, text, integer, numeric, uuid, uuid)`
+  - `create_sale_and_items(uuid, uuid, jsonb)`
 
 ## Security Implications:
 - RLS Status: Unchanged
@@ -22,14 +24,13 @@ This script uses `ALTER FUNCTION` to set the `search_path` to `public`. This pre
 ## Performance Impact:
 - Indexes: None
 - Triggers: None
-- Estimated Impact: Negligible
+- Estimated Impact: Negligible.
 */
 
--- Secure all custom functions by setting a non-mutable search_path
-ALTER FUNCTION public.handle_new_user() SET search_path = public;
-ALTER FUNCTION public.is_business_member(uuid, uuid) SET search_path = public;
-ALTER FUNCTION public.get_dashboard_stats(p_business_id uuid) SET search_path = public;
-ALTER FUNCTION public.invite_staff(p_business_id uuid, p_invitee_email text, p_role public.staff_role_enum) SET search_path = public;
-ALTER FUNCTION public.create_sale_and_items(p_business_id uuid, p_cashier_id uuid, p_items jsonb) SET search_path = public;
-ALTER FUNCTION public.create_booking(p_business_id uuid, p_guest_name text, p_guest_phone text, p_check_in_date date, p_check_out_date date, p_guests_count integer, p_total_amount numeric, p_room_id uuid, p_listing_id uuid) SET search_path = public;
-ALTER FUNCTION public.get_my_businesses() SET search_path = public;
+-- Secure the create_booking function
+ALTER FUNCTION public.create_booking(p_business_id uuid, p_guest_name text, p_guest_phone text, p_check_in_date text, p_check_out_date text, p_guests_count integer, p_total_amount numeric, p_room_id uuid, p_listing_id uuid)
+SET search_path = public;
+
+-- Secure the create_sale_and_items function
+ALTER FUNCTION public.create_sale_and_items(p_business_id uuid, p_cashier_id uuid, p_items jsonb)
+SET search_path = public;

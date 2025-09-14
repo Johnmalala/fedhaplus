@@ -36,10 +36,7 @@ function LandingPage() {
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
-    const pricingSection = document.getElementById('pricing');
-    if (pricingSection) {
-      pricingSection.scrollIntoView({ behavior: 'smooth' });
-    }
+    navigate('/auth');
   };
 
   return (
@@ -180,7 +177,8 @@ function AppRoutes() {
   const location = useLocation();
 
   useEffect(() => {
-    if (!loading && user && (location.pathname === '/' || location.pathname.startsWith('/auth'))) {
+    // Only redirect to dashboard from auth pages if logged in
+    if (!loading && user && location.pathname.startsWith('/auth')) {
       navigate('/dashboard');
     }
   }, [user, loading, navigate, location.pathname]);

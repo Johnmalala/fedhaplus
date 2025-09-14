@@ -12,8 +12,8 @@ export default function AuthLayout({ children, title, subtitle, footerContent }:
   return (
     <div className="min-h-screen w-full lg:grid lg:grid-cols-2">
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto grid w-[350px] gap-6">
-          <div className="grid gap-2 text-center">
+        <div className="mx-auto w-full max-w-sm space-y-6">
+          <div className="space-y-2 text-center">
             <Link to="/" className="flex items-center justify-center mb-4">
                <div className="w-12 h-12 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">F+</span>
@@ -39,7 +39,7 @@ export default function AuthLayout({ children, title, subtitle, footerContent }:
                 From hardware shops to schools, Fedha Plus provides the tools you need to succeed.
             </p>
             <img
-                src="https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://placehold.co/600x400/16a34a/ffffff?text=Fedha+Plus"
+                src="https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://placehold.co/600x400/16a34a/ffffff?text=Fedha+Plus"
                 alt="Fedha Plus Illustration"
                 className="mt-8 rounded-lg shadow-xl"
             />

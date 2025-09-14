@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import {
   HomeIcon,
   ShoppingCartIcon,
@@ -76,14 +76,14 @@ export default function Sidebar({ businesses, selectedBusiness, onBusinessSelect
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <Link to="/" className="flex items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
           <span className="text-white font-bold text-sm">F+</span>
         </div>
         <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white">
           Fedha Plus
         </span>
-      </div>
+      </Link>
 
       {/* Business Selector */}
       <BusinessSelector
