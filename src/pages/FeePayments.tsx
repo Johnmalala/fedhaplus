@@ -53,7 +53,8 @@ export default function FeePayments({ businessId }: FeePaymentsPageProps) {
       const { data, error } = await supabase
         .from('students')
         .select('*')
-        .eq('business_id', businessId);
+        .eq('business_id', businessId)
+        .eq('is_active', true);
       if (error) throw error;
       setStudents(data || []);
     } catch (error) {
@@ -71,6 +72,16 @@ export default function FeePayments({ businessId }: FeePaymentsPageProps) {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setNewPayment(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleStudentSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const studentId = e.target.value;
+    const selectedStudent = students.find(s => s.id === studentId);
+    setNewPayment(prev => ({
+      ...prev,
+      student_id: studentId,
+      amount: selectedStudent ? String(selectedStudent.fee_amount) : ''
+    }));
   };
 
   const handleAddPayment = async (e: React.FormEvent) => {
@@ -100,6 +111,7 @@ export default function FeePayments({ businessId }: FeePaymentsPageProps) {
       setNewPayment({ student_id: '', amount: '', mpesa_code: '', term: 'Term 1' });
     } catch (error) {
       console.error('Error adding payment:', error);
+      alert(`Failed to add payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -116,13 +128,22 @@ export default function FeePayments({ businessId }: FeePaymentsPageProps) {
       />
       <Card>
         <CardContent>
-          {loading ? <p>Loading payments...</p> : (
+          {loading ? <p className="py-12 text-center">Loading payments...</p> : payments.length === 0 ? (
+            <div className="text-center py-12">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">No Payments Recorded</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Record your first fee payment.</p>
+              <div className="mt-6">
+                <Button icon={<PlusIcon />} onClick={() => setIsModalOpen(true)}>Record First Payment</Button>
+              </div>
+            </div>
+          ) : (
             <Table>
               <TableHeader>
                 <TableHead>Student Name</TableHead>
                 <TableHead>Admission No.</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Amount</TableHead>
+                <TableHead>Term</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead><span className="sr-only">Actions</span></TableHead>
               </TableHeader>
@@ -133,6 +154,7 @@ export default function FeePayments({ businessId }: FeePaymentsPageProps) {
                     <TableCell>{payment.students?.admission_number}</TableCell>
                     <TableCell>{format(new Date(payment.created_at), 'MMM dd, yyyy')}</TableCell>
                     <TableCell>KSh {payment.amount.toLocaleString()}</TableCell>
+                    <TableCell>{payment.term}</TableCell>
                     <TableCell>
                       <Badge variant={payment.status === 'paid' ? 'success' : 'warning'}>
                         {payment.status}
@@ -153,12 +175,12 @@ export default function FeePayments({ businessId }: FeePaymentsPageProps) {
         <form onSubmit={handleAddPayment} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Student</label>
-            <select name="student_id" onChange={handleInputChange} value={newPayment.student_id} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:text-white">
+            <select name="student_id" onChange={handleStudentSelect} value={newPayment.student_id} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:text-white">
               <option value="" disabled>Select a student</option>
               {students.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name} ({s.admission_number})</option>)}
             </select>
           </div>
-          <Input name="amount" type="number" placeholder="Amount" onChange={handleInputChange} required />
+          <Input name="amount" type="number" placeholder="Amount" value={newPayment.amount} onChange={handleInputChange} required />
           <Input name="mpesa_code" placeholder="M-Pesa Code (Optional)" onChange={handleInputChange} />
           <Input name="term" placeholder="Term (e.g., Term 1)" onChange={handleInputChange} required value={newPayment.term} />
           <div className="flex justify-end space-x-2 pt-4">

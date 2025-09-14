@@ -64,13 +64,13 @@ function LandingPage() {
 function Dashboard() {
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingBusinesses, setLoadingBusinesses] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const fetchBusinesses = async () => {
     if (!user) return;
-    setLoading(true);
+    setLoadingBusinesses(true);
     try {
       const { data, error } = await supabase
         .from('businesses')
@@ -80,16 +80,15 @@ function Dashboard() {
 
       if (error) throw error;
       
-      setBusinesses(data || []);
-      if (data && data.length > 0 && !selectedBusiness) {
-        setSelectedBusiness(data[0]);
-      } else if (data && data.length === 0) {
-        // Handle case where user has no businesses, maybe show a creation screen
+      const fetchedBusinesses = data || [];
+      setBusinesses(fetchedBusinesses);
+      if (fetchedBusinesses.length > 0 && !selectedBusiness) {
+        setSelectedBusiness(fetchedBusinesses[0]);
       }
     } catch (error) {
       console.error('Error fetching businesses:', error);
     } finally {
-      setLoading(false);
+      setLoadingBusinesses(false);
     }
   };
   
@@ -99,17 +98,8 @@ function Dashboard() {
 
   const handleBusinessSelect = (business: Business) => {
     setSelectedBusiness(business);
-    // Navigate to the dashboard home of the selected business
     navigate('/dashboard');
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
 
   return (
     <DashboardLayout
@@ -118,7 +108,7 @@ function Dashboard() {
           businesses={businesses}
           selectedBusiness={selectedBusiness}
           onBusinessSelect={handleBusinessSelect}
-          onBusinessCreated={fetchBusinesses} // Refresh list when new business is added
+          onBusinessCreated={fetchBusinesses}
         />
       }
     >
@@ -126,7 +116,11 @@ function Dashboard() {
         <Route 
           path="/" 
           element={
-            selectedBusiness ? (
+            loadingBusinesses ? (
+              <div className="min-h-screen flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+              </div>
+            ) : selectedBusiness ? (
               <DashboardHome business={selectedBusiness} />
             ) : (
               <div className="text-center py-12">

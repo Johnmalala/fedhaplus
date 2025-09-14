@@ -86,7 +86,7 @@ export default function Settings({ business, onBusinessUpdate }: SettingsPagePro
         <Card>
           <CardHeader>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Business Profile</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Update your business'"'"'s public information.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Update your business's public information.</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>

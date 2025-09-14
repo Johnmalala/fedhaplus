@@ -8,7 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { supabase, type Business } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 interface DashboardHomeProps {
   business: Business;
@@ -149,7 +149,7 @@ export default function DashboardHome({ business }: DashboardHomeProps) {
           Karibu, {profile?.full_name || 'User'}!
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Here'"'"'s what'"'"'s happening with {business.name} today.
+          Here's what's happening with {business.name} today.
         </p>
       </div>
 

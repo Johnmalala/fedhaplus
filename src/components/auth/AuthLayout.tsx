@@ -39,7 +39,7 @@ export default function AuthLayout({ children, title, subtitle, footerContent }:
                 From hardware shops to schools, Fedha Plus provides the tools you need to succeed.
             </p>
             <img
-                src="https://img-wrapper.vercel.app/image?url=https://placehold.co/600x400/16a34a/ffffff?text=Fedha+Plus"
+                src="https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://placehold.co/600x400/16a34a/ffffff?text=Fedha+Plus"
                 alt="Fedha Plus Illustration"
                 className="mt-8 rounded-lg shadow-xl"
             />
