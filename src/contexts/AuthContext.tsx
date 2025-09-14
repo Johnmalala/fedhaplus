@@ -1,12 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase, type Profile, type BusinessType } from '../lib/supabase';
+import { supabase, type Profile } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
 
 interface SignUpInfo {
-  businessName: string;
   fullName: string;
   phone: string;
-  businessType: BusinessType;
 }
 
 interface AuthContextType {
@@ -15,7 +13,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signUpAndCreateBusiness: (email: string, password: string, info: SignUpInfo) => Promise<void>;
+  signUp: (email: string, password: string, info: SignUpInfo) => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
 }
 
@@ -68,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  const signUpAndCreateBusiness = async (email: string, password: string, info: SignUpInfo) => {
+  const signUp = async (email: string, password: string, info: SignUpInfo) => {
     const { data: { session }, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -82,33 +80,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (signUpError) throw signUpError;
     if (!session || !session.user) throw new Error('Could not sign up user. If email confirmation is enabled, please check your email to verify your account.');
-    
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .insert({
-        name: info.businessName,
-        business_type: info.businessType,
-        owner_id: session.user.id,
-        phone: info.phone,
-      })
-      .select()
-      .single();
 
-    if (businessError) throw businessError;
-
-    const { error: staffError } = await supabase
-      .from('staff_roles')
-      .insert({
-        business_id: business.id,
-        user_id: session.user.id,
-        role: 'owner',
-        invited_by: session.user.id,
-        is_active: true,
-      });
-      
-    if (staffError) throw staffError;
-
-    console.log(`Simulating welcome SMS to ${info.phone}: "Karibu Fedha Plus! Biashara yako imeanzishwa."`);
+    // Business creation is now handled separately after login.
+    // The routing logic in App.tsx will redirect to the business creation page.
   };
 
   const signIn = async (email: string, password: string) => {
@@ -138,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       signIn,
       signOut,
-      signUpAndCreateBusiness,
+      signUp,
       sendPasswordResetEmail,
     }}>
       {children}

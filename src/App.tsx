@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -16,6 +16,7 @@ import { supabase, type Business, type BusinessType } from './lib/supabase';
 import AuthPage from './pages/Auth';
 import ForgotPassword from './pages/ForgotPassword';
 import UpdatePassword from './pages/UpdatePassword';
+import CreateBusinessPage from './pages/CreateBusiness';
 
 // Import Pages
 import Products from './pages/Products';
@@ -34,10 +35,6 @@ import Settings from './pages/Settings';
 function LandingPage() {
   const navigate = useNavigate();
 
-  const handleSelectBusinessType = (type: BusinessType) => {
-    navigate(`/auth?type=${type}`);
-  };
-
   const handleGetStarted = () => {
     const pricingSection = document.getElementById('pricing');
     if (pricingSection) {
@@ -50,7 +47,7 @@ function LandingPage() {
       <Header onGetStarted={handleGetStarted} />
       <main>
         <Hero onGetStarted={handleGetStarted} />
-        <BusinessTypes onSelectBusinessType={handleSelectBusinessType} />
+        <BusinessTypes />
         <Features />
         <AccessControl />
       </main>
@@ -80,20 +77,21 @@ function Dashboard() {
         
       setBusinesses(fetchedBusinesses || []);
 
-      const query = new URLSearchParams(location.search);
-      const typeFromUrl = query.get('type') as BusinessType | null;
+      if ((fetchedBusinesses || []).length > 0) {
+        const query = new URLSearchParams(location.search);
+        const typeFromUrl = query.get('type') as BusinessType | null;
 
-      let businessToSelect: Business | null = null;
-      if (typeFromUrl) {
-        businessToSelect = fetchedBusinesses?.find(b => b.business_type === typeFromUrl) || null;
+        let businessToSelect: Business | null = null;
+        if (typeFromUrl) {
+          businessToSelect = fetchedBusinesses?.find(b => b.business_type === typeFromUrl) || null;
+        }
+
+        if (!businessToSelect && fetchedBusinesses && fetchedBusinesses.length > 0) {
+          businessToSelect = fetchedBusinesses[0];
+        }
+        
+        setSelectedBusiness(businessToSelect);
       }
-
-      if (!businessToSelect && fetchedBusinesses && fetchedBusinesses.length > 0) {
-        businessToSelect = fetchedBusinesses[0];
-      }
-      
-      setSelectedBusiness(businessToSelect);
-
     } catch (error) {
       console.error('Error processing businesses:', error);
       setBusinesses([]);
@@ -107,10 +105,24 @@ function Dashboard() {
     fetchBusinesses();
   }, [fetchBusinesses]);
 
+  useEffect(() => {
+    if (!loadingBusinesses && user && businesses.length === 0) {
+      navigate('/create-business', { replace: true });
+    }
+  }, [loadingBusinesses, businesses, user, navigate]);
+
   const handleBusinessSelect = (business: Business) => {
     setSelectedBusiness(business);
     navigate(`/dashboard?type=${business.business_type}`);
   };
+
+  if (loadingBusinesses || (user && businesses.length === 0 && !location.pathname.endsWith('/create-business'))) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <DashboardLayout
@@ -127,11 +139,7 @@ function Dashboard() {
         <Route 
           path="/" 
           element={
-            loadingBusinesses ? (
-              <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              </div>
-            ) : selectedBusiness ? (
+            selectedBusiness ? (
               <DashboardHome business={selectedBusiness} />
             ) : (
               <div className="text-center py-12">
@@ -173,33 +181,28 @@ function AppRoutes() {
 
   useEffect(() => {
     if (!loading && user && (location.pathname === '/' || location.pathname.startsWith('/auth'))) {
-      const query = new URLSearchParams(location.search);
-      const typeFromUrl = query.get('type');
-      if (typeFromUrl) {
-        navigate(`/dashboard?type=${typeFromUrl}`);
-      } else {
-        navigate('/dashboard');
-      }
+      navigate('/dashboard');
     }
-  }, [user, loading, navigate, location.pathname, location.search]);
+  }, [user, loading, navigate, location.pathname]);
   
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/create-business" element={<CreateBusinessPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/update-password" element={<UpdatePassword />} />
       <Route 
         path="/dashboard/*" 
         element={
           loading ? (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
             </div>
           ) : user ? (
             <Dashboard />
           ) : (
-            <Navigate to="/" replace />
+            <Navigate to="/auth" replace />
           )
         } 
       />

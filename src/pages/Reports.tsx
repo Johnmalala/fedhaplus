@@ -5,8 +5,9 @@ import { Button } from '../components/ui/Button';
 import { BarChart2, TrendingUp, Users, FileText, ArrowLeft } from 'lucide-react';
 import SalesReport from '../components/dashboard/reports/SalesReport';
 import FeeReport from '../components/dashboard/reports/FeeReport';
+import RentReport from '../components/dashboard/reports/RentReport';
+import InventoryReport from '../components/dashboard/reports/InventoryReport';
 import { supabase, type Business } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
 
 interface ReportsPageProps {
   businessId: string;
@@ -16,11 +17,11 @@ type ReportType = 'sales' | 'revenue' | 'customers' | 'inventory' | 'fees' | 're
 
 const allReportTypes: { id: ReportType, title: string; icon: React.ElementType; description: string; business_types: Business['business_type'][] }[] = [
   { id: 'sales', title: 'Sales Report', icon: BarChart2, description: 'Daily, weekly, and monthly sales performance.', business_types: ['hardware', 'supermarket'] },
+  { id: 'inventory', title: 'Inventory Summary', icon: FileText, description: 'Stock levels and product performance.', business_types: ['hardware', 'supermarket'] },
   { id: 'fees', title: 'Fee Collection Report', icon: BarChart2, description: 'Track student fee payments.', business_types: ['school'] },
   { id: 'rent', title: 'Rent Roll', icon: FileText, description: 'Summary of all tenant rent payments.', business_types: ['rentals'] },
   { id: 'revenue', title: 'Revenue Growth', icon: TrendingUp, description: 'Track revenue trends over time.', business_types: ['hardware', 'supermarket', 'rentals', 'airbnb', 'hotel', 'school'] },
   { id: 'customers', title: 'Customer Demographics', icon: Users, description: 'Understand your customer base.', business_types: ['hardware', 'supermarket'] },
-  { id: 'inventory', title: 'Inventory Summary', icon: FileText, description: 'Stock levels and product performance.', business_types: ['hardware', 'supermarket'] },
 ];
 
 export default function Reports({ businessId }: ReportsPageProps) {
@@ -49,7 +50,7 @@ export default function Reports({ businessId }: ReportsPageProps) {
     : [];
 
   // Currently enabled reports
-  const enabledReports: ReportType[] = ['sales', 'fees'];
+  const enabledReports: ReportType[] = ['sales', 'fees', 'rent', 'inventory'];
 
   if (loading) {
     return <div className="text-center py-12">Loading reports...</div>;
@@ -64,6 +65,8 @@ export default function Reports({ businessId }: ReportsPageProps) {
         </Button>
         {activeReport === 'sales' && <SalesReport businessId={businessId} />}
         {activeReport === 'fees' && <FeeReport businessId={businessId} />}
+        {activeReport === 'rent' && <RentReport businessId={businessId} />}
+        {activeReport === 'inventory' && <InventoryReport businessId={businessId} />}
       </div>
     );
   }

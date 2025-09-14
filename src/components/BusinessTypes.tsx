@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   WrenchScrewdriverIcon,
   BuildingStorefrontIcon,
@@ -10,12 +11,9 @@ import {
 import { useLanguage } from '../contexts/LanguageContext';
 import { BusinessType } from '../lib/supabase';
 
-interface BusinessTypesProps {
-  onSelectBusinessType: (type: BusinessType) => void;
-}
-
-export default function BusinessTypes({ onSelectBusinessType }: BusinessTypesProps) {
+export default function BusinessTypes() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   const businessTypes: { type: BusinessType, icon: any, title: string, price: string, description: string, popular: boolean }[] = [
     {
@@ -68,6 +66,10 @@ export default function BusinessTypes({ onSelectBusinessType }: BusinessTypesPro
     },
   ];
 
+  const handleChoosePlan = () => {
+    navigate('/auth');
+  };
+
   return (
     <div id="pricing" className="py-24 bg-gray-50 dark:bg-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -114,7 +116,7 @@ export default function BusinessTypes({ onSelectBusinessType }: BusinessTypesPro
                 </p>
 
                 <button 
-                  onClick={() => onSelectBusinessType(business.type)}
+                  onClick={handleChoosePlan}
                   className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 ${
                   business.popular
                     ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-lg hover:shadow-xl'

@@ -1,31 +1,33 @@
 /*
-# [Final Security Hardening]
-This migration addresses the final "Function Search Path Mutable" security warnings by explicitly setting a secure search_path for all custom functions. This is a non-destructive operation.
+# [Finalize Security]
+This migration secures all custom database functions by setting a fixed `search_path`.
+This addresses the "Function Search Path Mutable" security warnings and is a best practice to prevent potential schema-hijacking attacks.
 
 ## Query Description:
-This script uses `ALTER FUNCTION` to set the `search_path` to `public`. This prevents potential hijacking attacks where a malicious user could create a function with the same name in a different schema, causing the wrong function to be executed. This operation is safe and does not affect existing data or logic.
+This is a safe, non-destructive operation. It uses `ALTER FUNCTION` to modify the configuration of existing functions without changing their logic or dropping them. There is no risk to existing data or policies.
 
 ## Metadata:
 - Schema-Category: ["Safe", "Structural"]
 - Impact-Level: ["Low"]
 - Requires-Backup: false
-- Reversible: true
+- Reversible: true (by unsetting the search_path)
 
 ## Structure Details:
-- Alters all custom functions to set a secure search_path.
+- Modifies the configuration of all custom functions to enhance security.
 
 ## Security Implications:
 - RLS Status: Unchanged
 - Policy Changes: No
 - Auth Requirements: None
+- Mitigates `search_path` vulnerabilities.
 
 ## Performance Impact:
 - Indexes: None
 - Triggers: None
-- Estimated Impact: Negligible
+- Estimated Impact: Negligible.
 */
 
--- Secure all custom functions by setting a non-mutable search_path
+-- Set a secure search path for all custom functions
 ALTER FUNCTION public.handle_new_user() SET search_path = public;
 ALTER FUNCTION public.is_business_member(uuid, uuid) SET search_path = public;
 ALTER FUNCTION public.get_dashboard_stats(p_business_id uuid) SET search_path = public;
